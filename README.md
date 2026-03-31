@@ -59,22 +59,171 @@
 
 ### 如何获取 Token
 
-可参考原项目 `mijia_plug` 中的方法，或使用以下工具：
-- [miio 工具](https://github.com/rytilahti/python-miio)：`python -m miio.extract_tokens`
-- [MiToolKit](https://github.com/ultraicy/MiToolKit)
-- 米家 APP 抓包
+#### 🌟 推荐方案：使用 Xiaomi Cloud Tokens Extractor
+
+最便捷和推荐的方法是使用以下项目，它可以自动从米家云提取所有设备的 Token 和 IP：
+
+**项目地址**: [Xiaomi-cloud-tokens-extractor](https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor)
+
+**使用步骤**：
+
+1. **下载工具**
+   - 访问 [Release 页面](https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor/releases)
+   - 下载最新版本（Windows 用户下载 `.exe` 文件）
+
+2. **运行提取器**
+   ```
+   点击双击 .exe 文件运行
+   或在命令行中：
+   xiaomi_cloud_tokens_extractor.exe
+   ```
+
+3. **输入米家账户信息**
+   ```
+   Username: 你的米家账户（邮箱或手机号）
+   Password: 你的米家密码
+   Server:   China (中国用户选择此项)
+   ```
+
+4. **查看结果**
+   - 工具会自动列出所有米家设备
+   - 复制你的插座设备的 **IP** 和 **Token**
+   ```
+   设备名称: 客厅插座
+   Model:    cuco.plug.v3
+   IP:       192.168.1.100
+   Token:    a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+   ```
+
+5. **保存信息**
+   - 在记事本或文档中保存好 IP 和 Token
+   - ⚠️ Token 是敏感信息，请妥善保管，不要分享给他人
+
+#### 📖 其他获取方法
+
+如果上述方法不可用，也可以尝试：
+
+**方法 B - 使用 Python miio 工具**
+```bash
+# 安装 python-miio
+pip install python-miio
+
+# 提取所有设备的 Token
+python -m miio.extract_tokens
+
+# 会显示所有设备的信息
+```
+
+**方法 C - 使用 MiToolKit**
+- 项目地址: [MiToolKit](https://github.com/ultraicy/MiToolKit)
+- 下载运行后，选择"提取 Token"功能
+- 选择要提取的设备
+
+**方法 D - 米家 APP 抓包提取**
+- 使用 Fiddler 或 Charles 代理
+- 在米家 APP 中操作设备
+- 在代理日志中查找相关请求
+- 从 JSON 响应中提取 Token 字段
 
 ---
 
-## 插件选项说明
+## 📖 详细使用教程
 
-| 选项 | 说明 |
-|------|------|
-| 启用功率历史记录 | 开启后按分钟采样，保存到配置目录的 `.json` 文件 |
-| 显示"功率:"标签 | 控制任务栏上是否显示"功率:"前缀 |
-| 显示 W 单位 | 控制数值后是否显示"W"单位符号 |
-| 采集间隔（秒） | 每隔多少秒向设备发一次查询（建议3-5秒） |
-| 小数位数 | 0=整数，1=一位小数（默认），2=两位小数 |
+### 安装前检查清单
+
+- ✅ TrafficMonitor 已安装（v1.74 或更高版本）
+- ✅ 米家账户可正常登录
+- ✅ 智能插座已添加到米家 APP
+- ✅ 智能插座与电脑在同一局域网
+
+### 完整安装和配置步骤
+
+#### 第一步：获取设备 IP 和 Token
+
+1. 下载 [Xiaomi Cloud Tokens Extractor](https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor/releases)
+
+2. 运行 `.exe` 文件
+
+3. 输入米家账户信息：
+   ```
+   Username: 你的米家账号（邮箱/手机号）
+   Password: 你的米家密码
+   Server:   China
+   ```
+
+4. 等待提取完成，找到你的插座设备：
+   ```
+   设备: 客厅插座
+   IP: 192.168.1.100
+   Token: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+   ```
+
+5. 用记事本记录下 **IP** 和 **Token**
+
+#### 第二步：安装插件 DLL
+
+1. **找到 TrafficMonitor 目录**
+   - 通常在：`C:\Program Files\TrafficMonitor\`
+   - 或右键 TrafficMonitor 快捷方式 → 打开文件位置
+
+2. **创建 plugins 文件夹**（如果不存在）
+   ```
+   C:\Program Files\TrafficMonitor\plugins\
+   ```
+
+3. **放入 DLL 文件**
+   - 将 `MijiaPower.dll` 复制到 `plugins` 文件夹
+
+4. **完全关闭 TrafficMonitor**
+   - 右键任务栏图标 → 退出
+
+5. **重新启动 TrafficMonitor**
+
+#### 第三步：配置插件
+
+1. **打开插件选项**
+   - 右键 TrafficMonitor 任务栏区域 → 选项
+   - 或左侧菜单 → MijiaPowerPlugin → 选项
+
+2. **填写设备信息**
+   ```
+   设备 IP:  192.168.1.100    (从第一步获取)
+   Token:    a1b2c3d4...      (从第一步获取)
+   名称:     客厅插座          (可选，自定义名称)
+   ```
+
+3. **点击"测试连接"验证**
+   - 若显示连接成功 ✅ → 配置正确
+   - 若显示连接失败 ❌ → 重新检查 IP 和 Token
+
+4. **点击"确定"保存**
+
+#### 第四步：开始使用
+
+- 插件会立即显示实时功率
+- 可以看到任务栏中显示：`功率: XX.X W`
+- 鼠标悬停会显示详细的统计信息
+
+### 常见问题快速解决
+
+| 问题 | 症状 | 解决方案 |
+|------|------|---------|
+| 连接失败 | 显示"连接失败" | 检查 IP 和 Token 是否正确 |
+| 没有显示 | 看不到功率数值 | 确认 DLL 文件在 plugins 目录中 |
+| 数据异常 | 显示 0W 或错误值 | 检查设备是否开启，重启插件 |
+| Token 失败 | 工具无法提取 | 确保米家账户密码正确，网络正常 |
+
+### 高级配置选项
+
+安装完成后，可以在插件选项中调整：
+
+| 选项 | 默认值 | 推荐值 | 说明 |
+|------|--------|--------|------|
+| 启用历史记录 | 关闭 | 开启 | 记录功率数据用于分析 |
+| 显示功率标签 | 开启 | 开启 | 任务栏显示"功率:"文字 |
+| 显示 W 单位 | 开启 | 开启 | 数值后显示"W" |
+| 采集间隔(秒) | 3 | 3-5 | 越小更新越快，但消耗更多资源 |
+| 小数位数 | 1 | 1 | 显示精度（0-2位） |
 
 ---
 
