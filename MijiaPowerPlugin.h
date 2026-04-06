@@ -80,6 +80,7 @@ private:
 
     void StartSampling();  // 启动采样线程（在配置目录确定后调用）
     void SampleLoop();
+    void PersistHistoryIfEnabled() const;
     void ConnectDevice();
     void DisconnectDevice();
 

@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "PowerHistory.h"
 #include <chrono>
+#include <filesystem>
 #include <sstream>
 #include <fstream>
 
@@ -89,6 +90,15 @@ PowerStats PowerHistory::GetLongStats(int hours) const {
 // ─── 持久化（极简 JSON，无第三方库）────
 void PowerHistory::SaveToFile(const std::wstring& filePath) const {
     std::lock_guard<std::mutex> lock(m_mutex);
+    if (filePath.empty()) return;
+
+    std::filesystem::path path(filePath);
+    auto parent = path.parent_path();
+    if (!parent.empty()) {
+        std::error_code ec;
+        std::filesystem::create_directories(parent, ec);
+    }
+
     std::wofstream f(filePath);
     if (!f.is_open()) return;
     f << L"[";

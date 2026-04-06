@@ -86,11 +86,7 @@ CMijiaPowerPlugin::~CMijiaPowerPlugin() {
     if (m_sampleThread.joinable())
         m_sampleThread.join();
 
-    // 保存历史记录
-    auto& cfg = ConfigManager::Instance().Get();
-    if (cfg.enableRecording) {
-        m_history.SaveToFile(ConfigManager::Instance().GetHistoryFilePath());
-    }
+    PersistHistoryIfEnabled();
 }
 
 // API v7：主程序在加载插件后调用此函数，传入 ITrafficMonitor*
@@ -131,6 +127,7 @@ void CMijiaPowerPlugin::SampleLoop() {
     ConnectDevice();
 
     int elapsed = 0;
+    ULONGLONG lastHistorySaveTick = GetTickCount64();
     while (!m_stopFlag) {
         Sleep(1000);
         elapsed++;
@@ -177,13 +174,36 @@ void CMijiaPowerPlugin::SampleLoop() {
                 }
             }
         }
+
+        // 定期落盘，避免依赖 DLL 卸载时机导致历史文件丢失。
+        if (cfg.enableRecording && m_history.HasData()) {
+            ULONGLONG now = GetTickCount64();
+            if (now - lastHistorySaveTick >= 60000) {
+                PersistHistoryIfEnabled();
+                lastHistorySaveTick = now;
+            }
+        }
     }
 
-    // 线程退出前保存历史
-    auto& cfg = ConfigManager::Instance().Get();
-    if (cfg.enableRecording) {
-        m_history.SaveToFile(ConfigManager::Instance().GetHistoryFilePath());
+    PersistHistoryIfEnabled();
+}
+
+void CMijiaPowerPlugin::PersistHistoryIfEnabled() const {
+    if (!m_initialized) {
+        return;
     }
+
+    const auto& cfg = ConfigManager::Instance().Get();
+    if (!cfg.enableRecording) {
+        return;
+    }
+
+    auto historyPath = ConfigManager::Instance().GetHistoryFilePath();
+    if (historyPath.empty()) {
+        return;
+    }
+
+    m_history.SaveToFile(historyPath);
 }
 
 void CMijiaPowerPlugin::ConnectDevice() {

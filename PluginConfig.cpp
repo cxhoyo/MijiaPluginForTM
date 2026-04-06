@@ -1,6 +1,22 @@
 // PluginConfig.cpp - 配置管理实现（使用 Win32 INI API）
 #include "pch.h"
 #include "PluginConfig.h"
+#include <filesystem>
+
+namespace {
+void EnsureParentDirectoryExists(const std::wstring& filePath) {
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::filesystem::path path(filePath);
+    auto parent = path.parent_path();
+    if (!parent.empty()) {
+        std::error_code ec;
+        std::filesystem::create_directories(parent, ec);
+    }
+}
+}
 
 std::wstring ConfigManager::IniPath() const {
     return m_dir + L"\\MijiaPower.ini";
@@ -48,6 +64,7 @@ void ConfigManager::Load() {
 
 void ConfigManager::Save() const {
     auto p = IniPath();
+    EnsureParentDirectoryExists(p);
     WritePrivateProfileStringW(L"Device", L"IP",    m_cfg.deviceIp.c_str(),    p.c_str());
     WritePrivateProfileStringW(L"Device", L"Token", m_cfg.deviceToken.c_str(), p.c_str());
     WritePrivateProfileStringW(L"Device", L"Name",  m_cfg.deviceName.c_str(),  p.c_str());

@@ -284,6 +284,10 @@ python -m miio.extract_tokens
   MijiaPower_history.json ← 功率历史记录（如果启用）
 ```
 
+说明：
+- `MijiaPower_history.json` 会在启用历史记录且插件采集到功率数据后自动创建
+- 历史记录会定期保存，并在插件正常停止时再次保存
+
 ---
 
 ## 注意事项
