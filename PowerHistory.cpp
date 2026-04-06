@@ -119,7 +119,7 @@ void PowerHistory::SaveToFile(const std::wstring& filePath) const {
     if (!f.is_open()) return;
 
     if (writeHeader) {
-        f << L"LocalTime,Watts\r\n";
+        f << L"本地时间,功率(W)\r\n";
     }
 
     for (const auto& s : m_pendingPersist) {
