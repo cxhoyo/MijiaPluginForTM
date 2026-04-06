@@ -10,6 +10,7 @@
 
 namespace {
 constexpr wchar_t kHistoryCsvHeader[] = L"本地时间,功率(W)";
+constexpr unsigned char kUtf8Bom[] = { 0xEF, 0xBB, 0xBF };
 
 struct LocalMonthKey {
     int year = 0;
@@ -34,6 +35,41 @@ LocalMonthKey NextMonth(LocalMonthKey value) {
 
 bool IsSameMonth(LocalMonthKey lhs, LocalMonthKey rhs) {
     return lhs.year == rhs.year && lhs.month == rhs.month;
+}
+
+std::string WideToUtf8(const std::wstring& text) {
+    if (text.empty()) {
+        return {};
+    }
+
+    const int size = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+    if (size <= 0) {
+        return {};
+    }
+
+    std::string utf8(size, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), utf8.data(), size, nullptr, nullptr);
+    return utf8;
+}
+
+std::wstring Utf8ToWide(const std::string& text) {
+    if (text.empty()) {
+        return {};
+    }
+
+    const int size = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
+    if (size <= 0) {
+        return {};
+    }
+
+    std::wstring wide(size, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), wide.data(), size);
+    return wide;
+}
+
+const std::string& GetHistoryCsvHeaderUtf8() {
+    static const std::string header = WideToUtf8(kHistoryCsvHeader);
+    return header;
 }
 
 std::filesystem::path BuildMonthlyHistoryPath(const std::filesystem::path& historyDirectory, LocalMonthKey month) {
@@ -98,17 +134,17 @@ bool TryParseCsvTimestamp(const std::wstring& text, double& timestamp) {
     return true;
 }
 
-void LoadSamplesFromStream(std::wistream& stream,
+void LoadSamplesFromStream(std::istream& stream,
                            std::deque<PowerSample>& loadedRealtime,
                            std::deque<PowerSample>& loadedLongterm,
                            double realtimeCutoff,
                            double longCutoff,
                            double& lastMinTs) {
-    std::wstring line;
+    std::string line;
     bool firstLine = true;
 
     while (std::getline(stream, line)) {
-        if (!line.empty() && line.back() == L'\r') {
+        if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
         if (line.empty()) {
@@ -117,18 +153,25 @@ void LoadSamplesFromStream(std::wistream& stream,
 
         if (firstLine) {
             firstLine = false;
-            if (line == kHistoryCsvHeader || line == L"LocalTime,Watts") {
+            if (line.size() >= 3 &&
+                static_cast<unsigned char>(line[0]) == kUtf8Bom[0] &&
+                static_cast<unsigned char>(line[1]) == kUtf8Bom[1] &&
+                static_cast<unsigned char>(line[2]) == kUtf8Bom[2]) {
+                line.erase(0, 3);
+            }
+
+            if (line == GetHistoryCsvHeaderUtf8() || line == "LocalTime,Watts") {
                 continue;
             }
         }
 
-        size_t commaPos = line.find(L',');
-        if (commaPos == std::wstring::npos) {
+        size_t commaPos = line.find(',');
+        if (commaPos == std::string::npos) {
             continue;
         }
 
         double timestamp = 0.0;
-        if (!TryParseCsvTimestamp(line.substr(0, commaPos), timestamp)) {
+        if (!TryParseCsvTimestamp(Utf8ToWide(line.substr(0, commaPos)), timestamp)) {
             continue;
         }
 
@@ -274,7 +317,7 @@ void PowerHistory::SaveToFile(const std::wstring& filePath) const {
 
     bool allSucceeded = true;
     std::filesystem::path currentPath;
-    std::wofstream file;
+    std::ofstream file;
 
     auto openMonthlyFile = [&](const PowerSample& sample) -> bool {
         std::filesystem::path monthlyPath = BuildMonthlyHistoryPath(historyDirectory, GetLocalMonthKey(sample.timestamp));
@@ -289,14 +332,17 @@ void PowerHistory::SaveToFile(const std::wstring& filePath) const {
         std::error_code ec;
         bool writeHeader = !std::filesystem::exists(monthlyPath, ec) || std::filesystem::file_size(monthlyPath, ec) == 0;
 
-        file.open(monthlyPath, std::ios::app);
+        file.open(monthlyPath, std::ios::app | std::ios::binary);
         if (!file.is_open()) {
             return false;
         }
 
         currentPath = std::move(monthlyPath);
         if (writeHeader) {
-            file << kHistoryCsvHeader << L"\r\n";
+            file.write(reinterpret_cast<const char*>(kUtf8Bom), sizeof(kUtf8Bom));
+            const std::string& header = GetHistoryCsvHeaderUtf8();
+            file.write(header.data(), static_cast<std::streamsize>(header.size()));
+            file.write("\r\n", 2);
             if (file.fail()) {
                 file.close();
                 return false;
@@ -311,9 +357,12 @@ void PowerHistory::SaveToFile(const std::wstring& filePath) const {
             break;
         }
 
-        file << FormatLocalTimestamp(sample.timestamp)
-             << L"," << std::fixed << std::setprecision(2) << sample.watts
-             << L"\r\n";
+        std::ostringstream line;
+        line << WideToUtf8(FormatLocalTimestamp(sample.timestamp))
+             << "," << std::fixed << std::setprecision(2) << sample.watts
+             << "\r\n";
+        const std::string text = line.str();
+        file.write(text.data(), static_cast<std::streamsize>(text.size()));
         if (file.fail()) {
             allSucceeded = false;
             break;
@@ -344,7 +393,7 @@ void PowerHistory::LoadFromFile(const std::wstring& filePath) {
     auto recoveryPaths = CollectRecoveryHistoryPaths(filePath, longCutoff, now);
     bool openedAnyFile = false;
     for (const auto& historyPath : recoveryPaths) {
-        std::wifstream stream(historyPath);
+        std::ifstream stream(historyPath, std::ios::binary);
         if (!stream.is_open()) {
             continue;
         }
