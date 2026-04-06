@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "MijiaPowerPlugin.h"
 #include "OptionsDlg.h"
+#include "VersionInfo.h"
 #include <sstream>
 #include <iomanip>
 
@@ -259,11 +260,11 @@ void CMijiaPowerPlugin::DataRequired() {
 const wchar_t* CMijiaPowerPlugin::GetInfo(PluginInfoIndex index) {
     switch (index) {
     case TMI_NAME:        return L"米家插座功率";
-    case TMI_DESCRIPTION: return L"实时显示米家/酷控智能插座的功率，支持历史记录";
+    case TMI_DESCRIPTION: return MIJIA_POWER_FILE_DESCRIPTION_W;
     case TMI_AUTHOR:      return L"MijiaPlug";
-    case TMI_COPYRIGHT:   return L"2024 MijiaPlug";
+    case TMI_COPYRIGHT:   return MIJIA_POWER_COPYRIGHT_W;
     case TMI_URL:         return L"";
-    case TMI_VERSION:     return L"1.0.0";
+    case TMI_VERSION:     return MIJIA_POWER_VERSION_STRING_W;
     default:              return L"";
     }
 }

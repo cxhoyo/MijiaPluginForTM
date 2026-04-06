@@ -1,0 +1,37 @@
+#pragma code_page(65001)
+
+#include <winres.h>
+#include "VersionInfo.h"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION MIJIA_POWER_VERSION_NUMERIC
+ PRODUCTVERSION MIJIA_POWER_VERSION_NUMERIC
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS__WINDOWS32
+ FILETYPE VFT_DLL
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404B0"
+        BEGIN
+            VALUE "CompanyName",      MIJIA_POWER_COMPANY_NAME "\0"
+            VALUE "FileDescription",  MIJIA_POWER_FILE_DESCRIPTION "\0"
+            VALUE "FileVersion",      MIJIA_POWER_VERSION_STRING "\0"
+            VALUE "InternalName",     MIJIA_POWER_INTERNAL_NAME "\0"
+            VALUE "LegalCopyright",   MIJIA_POWER_COPYRIGHT "\0"
+            VALUE "OriginalFilename", MIJIA_POWER_ORIGINAL_NAME "\0"
+            VALUE "ProductName",      MIJIA_POWER_PRODUCT_NAME "\0"
+            VALUE "ProductVersion",   MIJIA_POWER_VERSION_STRING "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0804, 1200
+    END
+END

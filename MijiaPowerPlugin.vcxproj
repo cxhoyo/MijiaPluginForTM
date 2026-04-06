@@ -215,6 +215,11 @@
     <ClInclude Include="PluginInterface.h" />
     <ClInclude Include="PowerHistory.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="VersionInfo.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ResourceCompile Include="MijiaPowerPlugin.rc" />
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
