@@ -281,16 +281,17 @@ python -m miio.extract_tokens
 ```
 %AppData%\TrafficMonitor\plugins\
   MijiaPower.ini          ← 设备信息和选项
-  MijiaPower_history-YYYY-MM.csv  ← 按月拆分的功率历史记录（如果启用）
+  MijiaPower_history\
+    YYYY-MM.csv           ← 按月拆分的功率历史记录（如果启用）
 ```
 
 说明：
-- `MijiaPower_history-YYYY-MM.csv` 会在启用历史记录且插件采集到功率数据后按月份自动创建
+- `MijiaPower_history\YYYY-MM.csv` 会在启用历史记录且插件采集到功率数据后按月份自动创建
 - CSV 采用追加写入方式；插件启动时只会流式读取覆盖最近 10 分钟和 7 天汇总窗口所需的月份文件，不会整文件载入内存
 - 时间列使用用户系统本地时区格式化输出，便于直接查看
 - CSV 首行包含中文标题，默认列为 `本地时间,功率(W)`
 - 历史记录会在运行中按约 60 秒周期定期保存
-- “清除历史”会删除配置目录下全部 `MijiaPower_history-YYYY-MM.csv` 月文件
+- “清除历史”会删除 `MijiaPower_history` 目录下全部月文件
 
 ---
 

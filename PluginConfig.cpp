@@ -22,7 +22,7 @@ std::wstring ConfigManager::IniPath() const {
     return m_dir + L"\\MijiaPower.ini";
 }
 
-std::wstring ConfigManager::GetMonthlyHistoryFilePrefix() const {
+std::wstring ConfigManager::GetMonthlyHistoryDirectory() const {
     return m_dir + L"\\MijiaPower_history";
 }
 

@@ -36,27 +36,26 @@ bool IsSameMonth(LocalMonthKey lhs, LocalMonthKey rhs) {
     return lhs.year == rhs.year && lhs.month == rhs.month;
 }
 
-std::filesystem::path BuildMonthlyHistoryPath(const std::filesystem::path& prefixPath, LocalMonthKey month) {
+std::filesystem::path BuildMonthlyHistoryPath(const std::filesystem::path& historyDirectory, LocalMonthKey month) {
     std::wostringstream name;
-    name << prefixPath.filename().wstring()
-         << L"-" << std::setw(4) << std::setfill(L'0') << month.year
+    name << std::setw(4) << std::setfill(L'0') << month.year
          << L"-" << std::setw(2) << std::setfill(L'0') << month.month
          << L".csv";
-    return prefixPath.parent_path() / name.str();
+    return historyDirectory / name.str();
 }
 
-std::vector<std::filesystem::path> CollectRecoveryHistoryPaths(const std::wstring& monthlyFilePrefix, double earliestTimestamp, double latestTimestamp) {
+std::vector<std::filesystem::path> CollectRecoveryHistoryPaths(const std::wstring& historyDirectory, double earliestTimestamp, double latestTimestamp) {
     std::vector<std::filesystem::path> paths;
-    if (monthlyFilePrefix.empty()) {
+    if (historyDirectory.empty()) {
         return paths;
     }
 
-    const std::filesystem::path prefixPath(monthlyFilePrefix);
+    const std::filesystem::path directoryPath(historyDirectory);
     std::error_code ec;
     LocalMonthKey month = GetLocalMonthKey(earliestTimestamp);
     const LocalMonthKey endMonth = GetLocalMonthKey(latestTimestamp);
     while (true) {
-        auto monthlyPath = BuildMonthlyHistoryPath(prefixPath, month);
+        auto monthlyPath = BuildMonthlyHistoryPath(directoryPath, month);
         if (std::filesystem::exists(monthlyPath, ec)) {
             paths.push_back(std::move(monthlyPath));
         }
@@ -269,19 +268,16 @@ void PowerHistory::SaveToFile(const std::wstring& filePath) const {
     if (filePath.empty()) return;
     if (m_pendingPersist.empty()) return;
 
-    std::filesystem::path prefixPath(filePath);
-    auto parent = prefixPath.parent_path();
-    if (!parent.empty()) {
-        std::error_code ec;
-        std::filesystem::create_directories(parent, ec);
-    }
+    std::filesystem::path historyDirectory(filePath);
+    std::error_code ec;
+    std::filesystem::create_directories(historyDirectory, ec);
 
     bool allSucceeded = true;
     std::filesystem::path currentPath;
     std::wofstream file;
 
     auto openMonthlyFile = [&](const PowerSample& sample) -> bool {
-        std::filesystem::path monthlyPath = BuildMonthlyHistoryPath(prefixPath, GetLocalMonthKey(sample.timestamp));
+        std::filesystem::path monthlyPath = BuildMonthlyHistoryPath(historyDirectory, GetLocalMonthKey(sample.timestamp));
         if (monthlyPath == currentPath && file.is_open()) {
             return true;
         }

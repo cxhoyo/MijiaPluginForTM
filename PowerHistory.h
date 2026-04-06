@@ -41,7 +41,7 @@ public:
     PowerStats GetStats(int seconds) const;       // 实时段
     PowerStats GetLongStats(int hours) const;     // 长期段
 
-    // 持久化（追加导出到按月拆分的 CSV 文件；启动时按流式读取恢复近期汇总）
+    // 持久化（追加导出到按月拆分的 CSV 目录；启动时按流式读取恢复近期汇总）
     void SaveToFile(const std::wstring& filePath) const;
     void LoadFromFile(const std::wstring& filePath);
 
