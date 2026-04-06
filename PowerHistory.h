@@ -41,7 +41,7 @@ public:
     PowerStats GetStats(int seconds) const;       // 实时段
     PowerStats GetLongStats(int hours) const;     // 长期段
 
-    // 持久化（保存/加载长期历史到JSON文件）
+    // 持久化（追加导出到按月拆分的 CSV 目录；启动时按流式读取恢复近期汇总）
     void SaveToFile(const std::wstring& filePath) const;
     void LoadFromFile(const std::wstring& filePath);
 
@@ -49,8 +49,11 @@ private:
     mutable std::mutex       m_mutex;
     std::deque<PowerSample>  m_realtime;  // 实时环形缓冲
     std::deque<PowerSample>  m_longterm;  // 长期（分钟级）
+    mutable std::deque<PowerSample>  m_pendingPersist; // 等待追加到CSV的样本
     double                   m_lastMinTs = 0.0; // 最后长期采样的分钟时间戳
 
     static double Now();
+    static std::wstring FormatLocalTimestamp(double timestamp);
+    static bool TryParseLocalTimestamp(const std::wstring& text, double& timestamp);
     PowerStats CalcStats(const std::vector<PowerSample>& pts) const;
 };

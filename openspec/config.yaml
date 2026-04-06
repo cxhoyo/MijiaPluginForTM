@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  Tech stack: C++ Win32 TrafficMonitor plugin built with a Visual Studio solution.
+  Device communication: local miIO/MIOT over UDP using IP and token.
+  Compatibility rule: use exact model matching for model-specific MIOT property mappings; do not guess from partial model names.
+  CI/CD: GitHub Actions build-dll.yml for branch builds and release-dll.yml for tagged releases.
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

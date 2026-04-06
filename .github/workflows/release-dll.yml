@@ -1,0 +1,94 @@
+name: Release DLL
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to release, for example v1.0.1"
+        required: true
+        type: string
+      release_name:
+        description: "Optional release title"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release metadata
+        id: meta
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_type }}" -eq "tag" ? "${{ github.ref_name }}" : "${{ inputs.tag_name }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw "tag_name is required for workflow_dispatch."
+          }
+
+          $releaseName = "${{ inputs.release_name }}"
+          if ([string]::IsNullOrWhiteSpace($releaseName)) {
+            $releaseName = $tag
+          }
+
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_name=$releaseName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Create tag for manual release
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rev-parse -q --verify "refs/tags/${{ steps.meta.outputs.tag }}" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            git tag "${{ steps.meta.outputs.tag }}" "${{ github.sha }}"
+            git push origin "refs/tags/${{ steps.meta.outputs.tag }}"
+          }
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+
+      - name: Build Release x64 DLL
+        shell: pwsh
+        run: msbuild MijiaPowerPlugin.sln /m /p:Configuration=Release /p:Platform=x64 /v:minimal
+
+      - name: Package release files
+        id: package
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.meta.outputs.tag }}"
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Copy-Item "bin/Release/x64/MijiaPower.dll" "release/MijiaPower.dll"
+          $releaseFiles = @("release/MijiaPower.dll")
+          if (Test-Path "bin/Release/x64/MijiaPower.pdb") {
+            Copy-Item "bin/Release/x64/MijiaPower.pdb" "release/MijiaPower.pdb"
+            $releaseFiles += "release/MijiaPower.pdb"
+          }
+          $zipPath = "release/MijiaPower-$tag-win-x64.zip"
+          Compress-Archive -Path $releaseFiles -DestinationPath $zipPath -Force
+          $releaseFiles += $zipPath
+
+          "files<<EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $releaseFiles | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.release_name }}
+          files: ${{ steps.package.outputs.files }}

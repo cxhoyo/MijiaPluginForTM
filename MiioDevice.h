@@ -41,6 +41,12 @@ struct MiioProperty {
     int piid;
 };
 
+struct MiioModelProfile {
+    const char* model;
+    MiioProperty powerProperty;
+    double powerScale = 1.0;
+};
+
 class MiioDevice {
 public:
     static const int PORT = 54321;
@@ -59,6 +65,7 @@ public:
 
 private:
     std::string  m_ip;
+    std::string  m_model;
     unsigned char m_token[16];
     int          m_timeoutMs;
     unsigned char m_key[16];
@@ -68,6 +75,7 @@ private:
     long long     m_stampDelta  = 0;
     int           m_msgId      = 1;
     bool          m_handshaked = false;
+    bool          m_modelQueried = false;
 
     std::vector<unsigned char> Encrypt(const std::string& plaintext);
     std::string Decrypt(const std::vector<unsigned char>& ciphertext);
@@ -76,4 +84,6 @@ private:
     bool UdpSendRecv(const std::vector<unsigned char>& sendBuf,
                      std::vector<unsigned char>& recvBuf, int recvMax = 4096);
     unsigned int CurrentStamp() const;
+    bool QueryDeviceModel();
+    bool ReadNumericProperty(const MiioProperty& prop, double scale, double& outValue);
 };

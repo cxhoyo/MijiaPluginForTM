@@ -4,6 +4,7 @@
 #include "PluginConfig.h"
 #include "MiioDevice.h"
 #include <commctrl.h>
+#include <filesystem>
 #include <string>
 #include <sstream>
 
@@ -41,6 +42,37 @@ struct DlgState {
     HWND hComboDecimal = nullptr, hStaticStatus = nullptr;
     HWND hBtnTest = nullptr, hBtnClearHistory = nullptr;
 };
+
+static int DeleteHistoryFiles(const std::wstring& historyDirectory) {
+    if (historyDirectory.empty()) {
+        return 0;
+    }
+
+    std::filesystem::path directoryPath(historyDirectory);
+    std::error_code ec;
+    int deletedCount = 0;
+
+    if (!std::filesystem::exists(directoryPath, ec) || !std::filesystem::is_directory(directoryPath, ec)) {
+        return deletedCount;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(directoryPath, ec)) {
+        if (ec || !entry.is_regular_file()) {
+            continue;
+        }
+
+        if (entry.path().extension() != L".csv") {
+            continue;
+        }
+
+        std::error_code removeEc;
+        if (std::filesystem::remove(entry.path(), removeEc)) {
+            ++deletedCount;
+        }
+    }
+
+    return deletedCount;
+}
 
 static void CreateControls(HWND hWnd, DlgState* st) {
     HINSTANCE hInst = (HINSTANCE)GetWindowLongPtrW(hWnd, GWLP_HINSTANCE);
@@ -94,7 +126,7 @@ static void CreateControls(HWND hWnd, DlgState* st) {
 
     // ─── 历史数据分组 ───
     addCtrl(L"BUTTON", L"历史数据", BS_GROUPBOX, 15, 345, 470, 85, 0);
-    addCtrl(L"STATIC", L"功率历史保存在配置目录 MijiaPower_history.json 中",
+    addCtrl(L"STATIC", L"功率历史按月保存在配置目录 MijiaPower_history\\YYYY-MM.csv 中",
             SS_LEFT | SS_WORDELLIPSIS, 30, 368, 310, 40, IDC_STATIC_HISTORY);
     st->hBtnClearHistory = addCtrl(L"BUTTON", L"清除历史", BS_PUSHBUTTON, 350, 371, 120, 32, IDC_BTN_CLEARHISTORY);
 
@@ -205,9 +237,12 @@ static LRESULT CALLBACK DlgWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
         } else if (id == IDC_BTN_CLEARHISTORY) {
             if (MessageBoxW(hWnd, L"确定要清除所有功率历史记录吗？此操作不可撤销。",
                             L"确认", MB_YESNO | MB_ICONQUESTION) == IDYES) {
-                auto path = ConfigManager::Instance().GetHistoryFilePath();
-                DeleteFileW(path.c_str());
-                SetWindowTextW(st->hStaticStatus, L"历史记录已清除");
+                const int deletedCount = DeleteHistoryFiles(ConfigManager::Instance().GetMonthlyHistoryDirectory());
+                if (deletedCount > 0) {
+                    SetWindowTextW(st->hStaticStatus, L"历史记录已清除");
+                } else {
+                    SetWindowTextW(st->hStaticStatus, L"未找到可清除的历史记录");
+                }
             }
         }
         break;

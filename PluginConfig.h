@@ -32,8 +32,8 @@ public:
     PluginConfig& Get() { return m_cfg; }
     const PluginConfig& Get() const { return m_cfg; }
 
-    // 历史文件路径
-    std::wstring GetHistoryFilePath() const;
+    // 历史目录（实际文件名为 MijiaPower_history\YYYY-MM.csv）
+    std::wstring GetMonthlyHistoryDirectory() const;
 
 private:
     std::wstring  m_dir;
