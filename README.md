@@ -279,14 +279,14 @@ python -m miio.extract_tokens
 
 插件配置文件默认保存在 TrafficMonitor 的插件配置目录：
 ```
-%AppData%\TrafficMonitor\plugins\MijiaPower\
+%AppData%\TrafficMonitor\plugins\
   MijiaPower.ini          ← 设备信息和选项
   MijiaPower_history.json ← 功率历史记录（如果启用）
 ```
 
 说明：
 - `MijiaPower_history.json` 会在启用历史记录且插件采集到功率数据后自动创建
-- 历史记录会定期保存，并在插件正常停止时再次保存
+- 历史记录会在运行中按约 60 秒周期定期保存
 
 ---
 

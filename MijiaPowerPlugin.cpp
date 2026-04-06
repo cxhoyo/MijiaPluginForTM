@@ -85,8 +85,6 @@ CMijiaPowerPlugin::~CMijiaPowerPlugin() {
     m_stopFlag = true;
     if (m_sampleThread.joinable())
         m_sampleThread.join();
-
-    PersistHistoryIfEnabled();
 }
 
 // API v7：主程序在加载插件后调用此函数，传入 ITrafficMonitor*
@@ -185,7 +183,6 @@ void CMijiaPowerPlugin::SampleLoop() {
         }
     }
 
-    PersistHistoryIfEnabled();
 }
 
 void CMijiaPowerPlugin::PersistHistoryIfEnabled() const {
