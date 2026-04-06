@@ -362,6 +362,23 @@ static void WriteBE16(unsigned char* p, unsigned short v) { p[0]=(v>>8)&0xFF; p[
 static void WriteBE32(unsigned char* p, unsigned int v) { p[0]=(v>>24)&0xFF; p[1]=(v>>16)&0xFF; p[2]=(v>>8)&0xFF; p[3]=v&0xFF; }
 static unsigned int ReadBE32(const unsigned char* p) { return ((unsigned int)p[0]<<24)|((unsigned int)p[1]<<16)|((unsigned int)p[2]<<8)|p[3]; }
 
+static bool ExtractJsonStringField(const std::string& json, const char* key, std::string& outValue) {
+    std::string needle = "\"";
+    needle += key;
+    needle += "\":\"";
+    auto pos = json.find(needle);
+    if (pos == std::string::npos) return false;
+    pos += needle.size();
+    auto end = json.find('"', pos);
+    if (end == std::string::npos) return false;
+    outValue = json.substr(pos, end - pos);
+    return true;
+}
+
+static const MiioModelProfile MODEL_PROFILES[] = {
+    { "chuangmi.plug.212a01", {5, 6}, 0.01 },
+};
+
 MiioDevice::MiioDevice(const std::string& ip, const std::string& token, int timeoutMs)
     : m_ip(ip), m_timeoutMs(timeoutMs), m_handshaked(false) {
     // token hex -> bytes
@@ -518,11 +535,21 @@ bool MiioDevice::Send(const std::string& method, const std::string& paramsJson, 
     return true;
 }
 
-bool MiioDevice::GetPower(double& outWatts) {
-    // get_properties: siid=11, piid=2 (功率)
-    std::string params = "[{\"did\":\"prop\",\"siid\":11,\"piid\":2}]";
+bool MiioDevice::QueryDeviceModel() {
+    if (m_modelQueried) return !m_model.empty();
+
+    m_modelQueried = true;
     std::string result;
-    if (!Send("get_properties", params, result)) return false;
+    if (!Send("miIO.info", "[]", result)) return false;
+    return ExtractJsonStringField(result, "model", m_model);
+}
+
+bool MiioDevice::ReadNumericProperty(const MiioProperty& prop, double scale, double& outValue) {
+    std::ostringstream params;
+    params << "[{\"did\":\"prop\",\"siid\":" << prop.siid << ",\"piid\":" << prop.piid << "}]";
+
+    std::string result;
+    if (!Send("get_properties", params.str(), result)) return false;
     // 在结果中找 "value": 数字
     auto pos = result.find("\"value\":");
     if (pos == std::string::npos) return false;
@@ -531,6 +558,21 @@ bool MiioDevice::GetPower(double& outWatts) {
     double val = 0.0;
     try { val = std::stod(result.substr(pos)); }
     catch (...) { return false; }
-    outWatts = val;
+    outValue = val * scale;
     return true;
+}
+
+bool MiioDevice::GetPower(double& outWatts) {
+    if (QueryDeviceModel()) {
+        for (const auto& profile : MODEL_PROFILES) {
+            if (m_model == profile.model) {
+                return ReadNumericProperty(profile.powerProperty, profile.powerScale, outWatts);
+            }
+        }
+    }
+
+    // Legacy default path for existing supported models.
+    if (ReadNumericProperty({11, 2}, 1.0, outWatts)) return true;
+
+    return false;
 }

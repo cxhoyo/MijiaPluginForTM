@@ -1,0 +1,35 @@
+name: Build DLL
+
+on:
+  push:
+    branches:
+      - main
+      - support/**
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+
+      - name: Build Release x64 DLL
+        shell: pwsh
+        run: msbuild MijiaPowerPlugin.sln /m /p:Configuration=Release /p:Platform=x64 /v:minimal
+
+      - name: Upload DLL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MijiaPower-Release-x64
+          path: |
+            bin/Release/x64/MijiaPower.dll
+            bin/Release/x64/MijiaPower.pdb
+          if-no-files-found: error
