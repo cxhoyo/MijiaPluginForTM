@@ -1,7 +1,7 @@
 // OptionsDlg.h - 插件设置对话框（纯Win32，无MFC依赖）
 #pragma once
-#include "pch.h"
-#include "resource.h"
+#include "../pch.h"
+#include "../resource.h"
 
 // 对话框资源ID（在resource.h中定义）
 // 使用独立的 Win32 对话框，通过 DialogBoxParam 显示

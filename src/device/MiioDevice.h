@@ -1,7 +1,7 @@
 // MiioDevice.h - 纯C++ miIO协议实现（AES-128-CBC + UDP）
 // 参考 Python 原版 miio_proto.py
 #pragma once
-#include "pch.h"
+#include "../pch.h"
 
 // ─── MD5 简易实现 ───
 namespace MiioMD5 {
@@ -63,10 +63,10 @@ private:
     int          m_timeoutMs;
     unsigned char m_key[16];
     unsigned char m_iv[16];
-    unsigned int  m_deviceId  = 0;
+    unsigned int  m_deviceId = 0;
     unsigned int  m_serverStamp = 0;
-    long long     m_stampDelta  = 0;
-    int           m_msgId      = 1;
+    long long     m_stampDelta = 0;
+    int           m_msgId = 1;
     bool          m_handshaked = false;
 
     std::vector<unsigned char> Encrypt(const std::string& plaintext);

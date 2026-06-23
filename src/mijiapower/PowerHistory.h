@@ -1,6 +1,6 @@
 // PowerHistory.h - 功率历史记录与统计管理
 #pragma once
-#include "pch.h"
+#include "../pch.h"
 
 struct PowerSample {
     double   timestamp; // Unix 时间戳（秒，浮点）
@@ -8,18 +8,18 @@ struct PowerSample {
 };
 
 struct PowerStats {
-    double maxW   = 0.0;
-    double minW   = 0.0;
-    double avgW   = 0.0;
-    double lastW  = 0.0;
-    size_t count  = 0;
-    bool   valid  = false;
+    double maxW = 0.0;
+    double minW = 0.0;
+    double avgW = 0.0;
+    double lastW = 0.0;
+    size_t count = 0;
+    bool   valid = false;
 };
 
 class PowerHistory {
 public:
     static const size_t MAX_REALTIME = 300;   // 最近5分钟（2秒一次=150，取300富裕）
-    static const size_t MAX_LONG     = 10080; // 7天（1分钟一次）
+    static const size_t MAX_LONG = 10080; // 7天（1分钟一次）
 
     PowerHistory();
     ~PowerHistory() = default;

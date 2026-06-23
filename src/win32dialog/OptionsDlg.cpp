@@ -1,8 +1,8 @@
 // OptionsDlg.cpp - 设置对话框实现（纯Win32，无RC文件）
-#include "pch.h"
+#include "../pch.h"
 #include "OptionsDlg.h"
-#include "PluginConfig.h"
-#include "MiioDevice.h"
+#include "../mijiapower/PluginConfig.h"
+#include "../device/MiioDevice.h"
 #include <commctrl.h>
 #include <string>
 #include <sstream>
@@ -44,20 +44,20 @@ struct DlgState {
 
 static void CreateControls(HWND hWnd, DlgState* st) {
     HINSTANCE hInst = (HINSTANCE)GetWindowLongPtrW(hWnd, GWLP_HINSTANCE);
-    
+
     // 创建更大的字体 - 14pt 便于阅读
     LOGFONTW lf = {};
     lf.lfHeight = -14;  // 14pt
     lf.lfWeight = FW_NORMAL;
     wcscpy_s(lf.lfFaceName, L"微软雅黑");
     HFONT hFont = CreateFontIndirectW(&lf);
-    if (!hFont) hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    if(!hFont) hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 
     auto addCtrl = [&](LPCWSTR cls, LPCWSTR text, DWORD style,
                        int x, int y, int w, int h, int id) -> HWND {
         HWND hw = CreateWindowExW(0, cls, text, WS_CHILD | WS_VISIBLE | style,
                                   x, y, w, h, hWnd, (HMENU)(intptr_t)id, hInst, NULL);
-        if (hw && hFont) SendMessageW(hw, WM_SETFONT, (WPARAM)hFont, TRUE);
+        if(hw && hFont) SendMessageW(hw, WM_SETFONT, (WPARAM)hFont, TRUE);
         return hw;
     };
 
@@ -71,15 +71,15 @@ static void CreateControls(HWND hWnd, DlgState* st) {
 
     addCtrl(L"STATIC", L"名称:", 0, 30, 118, 80, 24, 0);
     st->hEditName = addCtrl(L"EDIT", L"", WS_BORDER | ES_AUTOHSCROLL, 115, 114, 220, 28, IDC_EDIT_NAME);
-    st->hBtnTest  = addCtrl(L"BUTTON", L"测试连接", BS_PUSHBUTTON, 345, 114, 120, 28, IDC_BTN_TEST);
+    st->hBtnTest = addCtrl(L"BUTTON", L"测试连接", BS_PUSHBUTTON, 345, 114, 120, 28, IDC_BTN_TEST);
 
     st->hStaticStatus = addCtrl(L"STATIC", L"", SS_LEFT, 30, 148, 420, 22, IDC_STATIC_STATUS);
 
     // ─── 插件选项分组 ───
     addCtrl(L"BUTTON", L"插件选项", BS_GROUPBOX, 15, 185, 470, 150, 0);
     st->hCheckRecord = addCtrl(L"BUTTON", L"启用功率历史记录", BS_AUTOCHECKBOX, 30, 210, 210, 26, IDC_CHECK_RECORD);
-    st->hCheckLabel  = addCtrl(L"BUTTON", L"显示\"功率\"标签", BS_AUTOCHECKBOX, 270, 210, 200, 26, IDC_CHECK_LABEL);
-    st->hCheckUnit   = addCtrl(L"BUTTON", L"显示 W 单位",   BS_AUTOCHECKBOX, 30, 245, 210, 26, IDC_CHECK_UNIT);
+    st->hCheckLabel = addCtrl(L"BUTTON", L"显示\"功率\"标签", BS_AUTOCHECKBOX, 270, 210, 200, 26, IDC_CHECK_LABEL);
+    st->hCheckUnit = addCtrl(L"BUTTON", L"显示 W 单位", BS_AUTOCHECKBOX, 30, 245, 210, 26, IDC_CHECK_UNIT);
 
     addCtrl(L"STATIC", L"采集间隔（秒）:", 0, 30, 285, 130, 24, 0);
     st->hEditInterval = addCtrl(L"EDIT", L"3", WS_BORDER | ES_NUMBER | ES_AUTOHSCROLL,
@@ -100,25 +100,25 @@ static void CreateControls(HWND hWnd, DlgState* st) {
 
     // ─── 底部按钮 ───
     addCtrl(L"BUTTON", L"确定", BS_DEFPUSHBUTTON, 270, 445, 100, 32, IDC_BTN_OK);
-    addCtrl(L"BUTTON", L"取消", BS_PUSHBUTTON,    380, 445, 100, 32, IDC_BTN_CANCEL);
+    addCtrl(L"BUTTON", L"取消", BS_PUSHBUTTON, 380, 445, 100, 32, IDC_BTN_CANCEL);
 
     // ─── 填充现有配置 ───
     auto& cfg = ConfigManager::Instance().Get();
-    SetWindowTextW(st->hEditIp,    cfg.deviceIp.c_str());
+    SetWindowTextW(st->hEditIp, cfg.deviceIp.c_str());
     SetWindowTextW(st->hEditToken, cfg.deviceToken.c_str());
-    SetWindowTextW(st->hEditName,  cfg.deviceName.c_str());
+    SetWindowTextW(st->hEditName, cfg.deviceName.c_str());
 
     wchar_t buf[32];
     _itow_s(cfg.updateIntervalSec, buf, 10);
     SetWindowTextW(st->hEditInterval, buf);
 
     SendMessageW(st->hCheckRecord, BM_SETCHECK, cfg.enableRecording ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(st->hCheckLabel,  BM_SETCHECK, cfg.showLabel       ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(st->hCheckUnit,   BM_SETCHECK, cfg.showUnit        ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(st->hCheckLabel, BM_SETCHECK, cfg.showLabel ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(st->hCheckUnit, BM_SETCHECK, cfg.showUnit ? BST_CHECKED : BST_UNCHECKED, 0);
 
     int dec = cfg.decimalPlaces;
-    if (dec < 0) dec = 0;
-    if (dec > 2) dec = 2;
+    if(dec < 0) dec = 0;
+    if(dec > 2) dec = 2;
     SendMessageW(st->hComboDecimal, CB_SETCURSEL, dec, 0);
 }
 
@@ -126,19 +126,20 @@ static bool SaveFromDialog(DlgState* st) {
     auto& cfg = ConfigManager::Instance().Get();
     wchar_t buf[512];
 
-    GetWindowTextW(st->hEditIp,    buf, 512); cfg.deviceIp    = buf;
+    GetWindowTextW(st->hEditIp, buf, 512); cfg.deviceIp = buf;
     GetWindowTextW(st->hEditToken, buf, 512); cfg.deviceToken = buf;
-    GetWindowTextW(st->hEditName,  buf, 512); cfg.deviceName  = buf;
+    GetWindowTextW(st->hEditName, buf, 512); cfg.deviceName = buf;
     GetWindowTextW(st->hEditInterval, buf, 32);
-    try { cfg.updateIntervalSec = std::stoi(buf); } catch (...) { cfg.updateIntervalSec = 3; }
-    if (cfg.updateIntervalSec < 1) cfg.updateIntervalSec = 1;
-    if (cfg.updateIntervalSec > 60) cfg.updateIntervalSec = 60;
+    try { cfg.updateIntervalSec = std::stoi(buf); }
+    catch(...) { cfg.updateIntervalSec = 3; }
+    if(cfg.updateIntervalSec < 1) cfg.updateIntervalSec = 1;
+    if(cfg.updateIntervalSec > 60) cfg.updateIntervalSec = 60;
 
     cfg.enableRecording = (SendMessageW(st->hCheckRecord, BM_GETCHECK, 0, 0) == BST_CHECKED);
-    cfg.showLabel       = (SendMessageW(st->hCheckLabel,  BM_GETCHECK, 0, 0) == BST_CHECKED);
-    cfg.showUnit        = (SendMessageW(st->hCheckUnit,   BM_GETCHECK, 0, 0) == BST_CHECKED);
-    cfg.decimalPlaces   = (int)SendMessageW(st->hComboDecimal, CB_GETCURSEL, 0, 0);
-    if (cfg.decimalPlaces < 0) cfg.decimalPlaces = 1;
+    cfg.showLabel = (SendMessageW(st->hCheckLabel, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    cfg.showUnit = (SendMessageW(st->hCheckUnit, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    cfg.decimalPlaces = (int)SendMessageW(st->hComboDecimal, CB_GETCURSEL, 0, 0);
+    if(cfg.decimalPlaces < 0) cfg.decimalPlaces = 1;
 
     ConfigManager::Instance().Save();
     return true;
@@ -149,7 +150,7 @@ static LRESULT CALLBACK DlgWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     // 从窗口用户数据取回 DlgState*
     DlgState* st = reinterpret_cast<DlgState*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
 
-    switch (msg) {
+    switch(msg) {
     case WM_CREATE: {
         // lParam 是 CREATESTRUCT*，其 lpCreateParams 就是我们传入的 DlgState*
         CREATESTRUCTW* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
@@ -160,25 +161,25 @@ static LRESULT CALLBACK DlgWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     }
 
     case WM_COMMAND: {
-        if (!st) break;
+        if(!st) break;
         int id = LOWORD(wParam);
 
-        if (id == IDC_BTN_OK) {
-            if (SaveFromDialog(st)) {
+        if(id == IDC_BTN_OK) {
+            if(SaveFromDialog(st)) {
                 st->result = true;
                 st->closed = true;
                 DestroyWindow(hWnd);
             }
-        } else if (id == IDC_BTN_CANCEL) {
+        } else if(id == IDC_BTN_CANCEL) {
             st->result = false;
             st->closed = true;
             DestroyWindow(hWnd);
-        } else if (id == IDC_BTN_TEST) {
+        } else if(id == IDC_BTN_TEST) {
             wchar_t ipBuf[256], tokenBuf[256];
-            GetWindowTextW(st->hEditIp,    ipBuf,    256);
+            GetWindowTextW(st->hEditIp, ipBuf, 256);
             GetWindowTextW(st->hEditToken, tokenBuf, 256);
 
-            if (wcslen(ipBuf) == 0 || wcslen(tokenBuf) == 0) {
+            if(wcslen(ipBuf) == 0 || wcslen(tokenBuf) == 0) {
                 SetWindowTextW(st->hStaticStatus, L"请填写 IP 和 Token");
                 break;
             }
@@ -186,25 +187,26 @@ static LRESULT CALLBACK DlgWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             UpdateWindow(hWnd);
 
             char ip[256], token[256];
-            WideCharToMultiByte(CP_UTF8, 0, ipBuf,    -1, ip,    256, NULL, NULL);
+            WideCharToMultiByte(CP_UTF8, 0, ipBuf, -1, ip, 256, NULL, NULL);
             WideCharToMultiByte(CP_UTF8, 0, tokenBuf, -1, token, 256, NULL, NULL);
 
             try {
                 MiioDevice dev(ip, token, 5000);
                 double watts = 0;
-                if (dev.GetPower(watts)) {
+                if(dev.GetPower(watts)) {
                     wchar_t msg2[128];
                     swprintf_s(msg2, L"连接成功！当前功率：%.1fW", watts);
                     SetWindowTextW(st->hStaticStatus, msg2);
                 } else {
                     SetWindowTextW(st->hStaticStatus, L"连接失败，请检查 IP/Token 和网络");
                 }
-            } catch (...) {
+            }
+            catch(...) {
                 SetWindowTextW(st->hStaticStatus, L"连接异常，请检查 IP/Token");
             }
-        } else if (id == IDC_BTN_CLEARHISTORY) {
-            if (MessageBoxW(hWnd, L"确定要清除所有功率历史记录吗？此操作不可撤销。",
-                            L"确认", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+        } else if(id == IDC_BTN_CLEARHISTORY) {
+            if(MessageBoxW(hWnd, L"确定要清除所有功率历史记录吗？此操作不可撤销。",
+                L"确认", MB_YESNO | MB_ICONQUESTION) == IDYES) {
                 auto path = ConfigManager::Instance().GetHistoryFilePath();
                 DeleteFileW(path.c_str());
                 SetWindowTextW(st->hStaticStatus, L"历史记录已清除");
@@ -214,7 +216,7 @@ static LRESULT CALLBACK DlgWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     }
 
     case WM_CLOSE:
-        if (st) { st->result = false; st->closed = true; }
+        if(st) { st->result = false; st->closed = true; }
         DestroyWindow(hWnd);
         return 0;
 
@@ -228,15 +230,15 @@ static LRESULT CALLBACK DlgWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 // ─── 窗口类注册（线程安全，只注册一次）───
 static ATOM RegisterDlgClass(HINSTANCE hInst) {
     static ATOM atom = 0;
-    if (atom == 0) {
+    if(atom == 0) {
         WNDCLASSEXW wc = {};
-        wc.cbSize        = sizeof(wc);
-        wc.lpfnWndProc   = DlgWndProc;
-        wc.hInstance     = hInst;
-        wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
+        wc.cbSize = sizeof(wc);
+        wc.lpfnWndProc = DlgWndProc;
+        wc.hInstance = hInst;
+        wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
         wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
         wc.lpszClassName = L"MijiaPowerOptDlg";
-        wc.hIcon         = LoadIconW(NULL, IDI_APPLICATION);
+        wc.hIcon = LoadIconW(NULL, IDI_APPLICATION);
         atom = RegisterClassExW(&wc);
     }
     return atom;
@@ -253,15 +255,15 @@ bool COptionsDlg::Show(HWND hParent) {
     DlgState state;
 
     // 计算居中坐标 - 宽敞的大窗口布局
-    int W = 520, H = 540;  
+    int W = 520, H = 540;
     int px = CW_USEDEFAULT, py = CW_USEDEFAULT;
-    if (hParent) {
+    if(hParent) {
         RECT rc{};
         GetWindowRect(hParent, &rc);
-        px = rc.left + (rc.right  - rc.left - W) / 2;
-        py = rc.top  + (rc.bottom - rc.top  - H) / 2;
-        if (px < 0) px = 0;
-        if (py < 0) py = 0;
+        px = rc.left + (rc.right - rc.left - W) / 2;
+        py = rc.top + (rc.bottom - rc.top - H) / 2;
+        if(px < 0) px = 0;
+        if(py < 0) py = 0;
     }
 
     HWND hDlg = CreateWindowExW(
@@ -274,28 +276,28 @@ bool COptionsDlg::Show(HWND hParent) {
         &state   // 传给 WM_CREATE 的 CREATESTRUCT::lpCreateParams
     );
 
-    if (!hDlg) return false;
+    if(!hDlg) return false;
 
     // 禁用父窗口（实现模态效果）
-    if (hParent) EnableWindow(hParent, FALSE);
+    if(hParent) EnableWindow(hParent, FALSE);
     ShowWindow(hDlg, SW_SHOW);
     UpdateWindow(hDlg);
 
     // 消息循环：只处理此对话框的消息，不 PostQuitMessage
     MSG msg{};
-    while (!state.closed && GetMessageW(&msg, NULL, 0, 0) > 0) {
-        if (!IsWindow(hDlg)) break;
-        if (!IsDialogMessageW(hDlg, &msg)) {
+    while(!state.closed && GetMessageW(&msg, NULL, 0, 0) > 0) {
+        if(!IsWindow(hDlg)) break;
+        if(!IsDialogMessageW(hDlg, &msg)) {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
     }
 
     // 如果窗口还活着（用户关闭了消息循环之外），强制销毁
-    if (IsWindow(hDlg)) DestroyWindow(hDlg);
+    if(IsWindow(hDlg)) DestroyWindow(hDlg);
 
     // 恢复父窗口
-    if (hParent) {
+    if(hParent) {
         EnableWindow(hParent, TRUE);
         SetForegroundWindow(hParent);
     }

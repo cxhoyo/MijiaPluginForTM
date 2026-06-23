@@ -1,8 +1,8 @@
 // MijiaPowerPlugin.h - 插件主类声明
 #pragma once
-#include "pch.h"
-#include "PluginInterface.h"
-#include "MiioDevice.h"
+#include "../pch.h"
+#include "../../include/PluginInterface.h"
+#include "../device/MiioDevice.h"
 #include "PowerHistory.h"
 #include "PluginConfig.h"
 
@@ -14,13 +14,14 @@ public:
     void SetPlugin(class CMijiaPowerPlugin* plugin) { m_plugin = plugin; }
 
     const wchar_t* GetItemName()            const override;
-    const wchar_t* GetItemId()              const override { return L"MijiaPowerW"; }
+    const wchar_t* GetItemId()              const override;
     const wchar_t* GetItemLableText()       const override;
     const wchar_t* GetItemValueText()       const override;
     const wchar_t* GetItemValueSampleText() const override { return L"9999.9W"; }
 
 private:
     class CMijiaPowerPlugin* m_plugin = nullptr;
+    mutable std::wstring m_itemId;
     mutable std::wstring m_valueText;
     mutable std::wstring m_labelText;
 };
@@ -34,7 +35,7 @@ public:
     ~CMijiaPowerPlugin();
 
     // ── ITMPlugin 接口实现 ──
-    IPluginItem*   GetItem(int index)  override;
+    IPluginItem* GetItem(int index)  override;
     int            GetItemCount() const { return 1; }
     void           DataRequired()      override;
     const wchar_t* GetInfo(PluginInfoIndex index) override;
@@ -53,7 +54,7 @@ public:
     // 安全关闭（DllMain DLL_PROCESS_DETACH 阶段调用，detach 线程避免死锁）
     void Shutdown() {
         m_stopFlag = true;
-        if (m_sampleThread.joinable())
+        if(m_sampleThread.joinable())
             m_sampleThread.detach();
     }
 
@@ -63,7 +64,7 @@ public:
     const PowerHistory& GetHistory()   const { return m_history; }
 
 private:
-    ITrafficMonitor*   m_pTM = nullptr;
+    ITrafficMonitor* m_pTM = nullptr;
     CPowerItem         m_powerItem;
     PowerHistory       m_history;
 
