@@ -1,74 +1,58 @@
-# MijiaPowerPlugin ±àÒë½Å±¾ (x64 Release)
-# Ê¹ÓÃ: powershell -ExecutionPolicy Bypass -File compile.ps1
+ï»¿param(
+    [ValidateSet('Debug', 'Release')]
+    [string]$Configuration = 'Release',
 
-Write-Host ""
-Write-Host "========================================"
-Write-Host " MijiaPowerPlugin ±àÒë¿ªÊ¼ (x64)" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
+    [ValidateSet('Win32', 'x64')]
+    [string]$Platform = 'x64',
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $scriptDir
-
-# ²éÕÒ MSBuild.exe
-$msbuildPaths = @(
-    "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
-    "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
-    "C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
-    "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+    [switch]$Pause
 )
 
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location -LiteralPath $scriptDir
+
 $msbuildExe = $null
-foreach ($path in $msbuildPaths) {
-    if (Test-Path $path) {
-        $msbuildExe = $path
-        Write-Host "[¡Ì] ÕÒµ½ MSBuild: $path" -ForegroundColor Green
-        break
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+if (Test-Path -LiteralPath $vswhere) {
+    $candidate = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' |
+        Select-Object -First 1
+    if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+        $msbuildExe = $candidate
     }
 }
 
-if ($null -eq $msbuildExe) {
-    Write-Host "[¡Á] ´íÎó: Î´ÕÒµ½ MSBuild.exe" -ForegroundColor Red
-    Write-Host "Çë°²×° Visual Studio 2022 »ò Visual Studio Build Tools"
-    Read-Host "°´ÈÎÒâ¼ü¼ÌĞø"
-    exit 1
+if (-not $msbuildExe) {
+    $knownPaths = @(
+        'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe',
+        'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe',
+        'C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe',
+        'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe'
+    )
+    $msbuildExe = $knownPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 }
 
-Write-Host ""
-Write-Host "[*] ÅäÖÃ: Release | x64" -ForegroundColor Yellow
-Write-Host "[*] ¿ªÊ¼±àÒë..." -ForegroundColor Yellow
-Write-Host ""
-
-# Ö´ĞĞ±àÒë
-& $msbuildExe "MijiaPowerPlugin.sln" /p:Configuration=Release /p:Platform=x64 /v:minimal
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host " [¡Ì] ±àÒë³É¹¦£¡" -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host ""
-    
-    $dllPath = "bin\Release\x64\MijiaPower.dll"
-    if (Test-Path $dllPath) {
-        Write-Host "DLL Î»ÖÃ: $dllPath" -ForegroundColor Green
-        Write-Host "ÎÄ¼ş´óĞ¡: $((Get-Item $dllPath).Length) ×Ö½Ú" -ForegroundColor Green
-    } else {
-        Write-Host "[!] Î´ÕÒµ½ DLL£¬ËÑË÷ÖĞ..." -ForegroundColor Yellow
-        Get-ChildItem -Recurse -Filter "MijiaPower.dll" 2>$null | ForEach-Object {
-            Write-Host "ÕÒµ½: $($_.FullName)" -ForegroundColor Green
-        }
-    }
-    
-    Write-Host ""
-    Write-Host "ÏÂÒ»²½: ¹Ø±Õ TrafficMonitor£¬¸´ÖÆ DLL µ½²å¼şÄ¿Â¼" -ForegroundColor Cyan
-    Write-Host ""
-} else {
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Red
-    Write-Host " [¡Á] ±àÒëÊ§°Ü£¡´íÎó´úÂë: $LASTEXITCODE" -ForegroundColor Red
-    Write-Host "========================================" -ForegroundColor Red
-    Write-Host ""
+if (-not $msbuildExe) {
+    Write-Error 'æœªæ‰¾åˆ° MSBuildã€‚è¯·å®‰è£… Visual Studio 2022 Build Toolsï¼Œå¹¶å‹¾é€‰â€œä½¿ç”¨ C++ çš„æ¡Œé¢å¼€å‘â€ã€‚'
 }
 
-Read-Host "°´ÈÎÒâ¼ü¼ÌĞø"
+Write-Host "MSBuild: $msbuildExe" -ForegroundColor Cyan
+Write-Host "æ„å»º: $Configuration | $Platform" -ForegroundColor Cyan
+& $msbuildExe '.\MijiaPowerPlugin.sln' "/p:Configuration=$Configuration" "/p:Platform=$Platform" '/m' '/v:minimal'
+if ($LASTEXITCODE -ne 0) {
+    throw "MSBuild å¤±è´¥ï¼Œé€€å‡ºç  $LASTEXITCODE"
+}
+
+$dllPath = Join-Path $scriptDir "bin\$Configuration\$Platform\MijiaPower.dll"
+if (-not (Test-Path -LiteralPath $dllPath)) {
+    throw "æ„å»ºæˆåŠŸä½†æœªæ‰¾åˆ° DLLï¼š$dllPath"
+}
+
+$dll = Get-Item -LiteralPath $dllPath
+Write-Host "DLL: $($dll.FullName)" -ForegroundColor Green
+Write-Host "å¤§å°: $($dll.Length) å­—èŠ‚" -ForegroundColor Green
+
+if ($Pause) {
+    Read-Host 'æŒ‰ Enter é€€å‡º'
+}

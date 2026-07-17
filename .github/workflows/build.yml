@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build x64 Release
+        shell: powershell
+        run: .\compile.ps1 -Configuration Release -Platform x64
+      - name: Verify plugin export
+        shell: powershell
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = & $vswhere -latest -products * -property installationPath
+          $dumpbin = Get-ChildItem -LiteralPath "$installPath\VC\Tools\MSVC" -Filter dumpbin.exe -Recurse |
+            Where-Object { $_.FullName -match 'Hostx64\\x64\\dumpbin.exe$' } |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $dumpbin) { throw 'dumpbin.exe not found' }
+          $exports = & $dumpbin /exports bin\Release\x64\MijiaPower.dll
+          if (-not ($exports -match 'TMPluginGetInstance')) { throw 'TMPluginGetInstance export not found' }
+      - name: Test configuration migration
+        shell: cmd
+        run: bin\Tests\x64\PluginConfigTests.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MijiaPower-x64
+          path: bin/Release/x64/MijiaPower.dll

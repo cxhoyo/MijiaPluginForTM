@@ -195,6 +195,7 @@
 
   <!-- 源文件 -->
   <ItemGroup>
+    <ClCompile Include="DeviceRuntime.cpp" />
     <ClCompile Include="MiioDevice.cpp" />
     <ClCompile Include="MijiaPowerPlugin.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
@@ -207,6 +208,7 @@
 
   <!-- 头文件 -->
   <ItemGroup>
+    <ClInclude Include="DeviceRuntime.h" />
     <ClInclude Include="MiioDevice.h" />
     <ClInclude Include="MijiaPowerPlugin.h" />
     <ClInclude Include="OptionsDlg.h" />

@@ -25,6 +25,9 @@
 #include <cmath>
 #include <ctime>
 #include <memory>
+#include <cstring>
+#include <cwchar>
+#include <cstdio>
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "comctl32.lib")
